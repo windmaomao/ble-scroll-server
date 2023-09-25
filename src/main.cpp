@@ -1,28 +1,31 @@
 #include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
+#include <BLE2902.h>
 
 #define LED_PIN 13
 #define BUTTON_PIN 26
+
+#define BLE_SERVER_NAME "Scroll Server"
 #define SERVICE_UUID BLEUUID("FF10")
 #define CHARACTERISTIC_UUID BLEUUID("FF11")
-#define DESCRIPTOR_UUID BLEUUID("State")
 
 BLECharacteristic *pCharacteristic;
+BLEDescriptor *pDescriptor;
 
 void setup()
 {
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  BLEDevice::init("Scroll Server");
+  BLEDevice::init(BLE_SERVER_NAME);
   BLEServer *pServer = BLEDevice::createServer();
   BLEService *pService = pServer->createService(SERVICE_UUID);
   pCharacteristic = pService->createCharacteristic(
       CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ |
-          BLECharacteristic::PROPERTY_WRITE);
-  pCharacteristic->setValue("Hello World");
+          BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE);
+  pCharacteristic->addDescriptor(new BLE2902());
   pService->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -35,15 +38,17 @@ void setup()
 
 void loop()
 {
-  int v = digitalRead(BUTTON_PIN);
+  u_int8_t v = digitalRead(BUTTON_PIN);
   if (v == LOW)
   {
     digitalWrite(LED_PIN, HIGH);
-    pCharacteristic->setValue("ON");
+    pCharacteristic->setValue(&v, 1);
+    pCharacteristic->notify();
   }
   else
   {
     digitalWrite(LED_PIN, LOW);
-    pCharacteristic->setValue("OFF");
+    pCharacteristic->setValue(&v, 1);
+    pCharacteristic->notify();
   }
 }
