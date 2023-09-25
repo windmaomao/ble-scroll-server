@@ -31,8 +31,38 @@ class ServerCallbacks : public BLEServerCallbacks
   }
 };
 
+class CharacteristicCallbacks : public BLECharacteristicCallbacks
+{
+  void onWrite(BLECharacteristic *pCharacteristic)
+  {
+    std::string rxValue = pCharacteristic->getValue();
+
+    if (rxValue.length() > 0)
+    {
+      Serial.println("*********");
+      Serial.print("Received Value: ");
+      for (int i = 0; i < rxValue.length(); i++)
+      {
+        Serial.print(rxValue[i], HEX);
+        if (rxValue[i] == '0')
+        {
+          digitalWrite(LED_PIN, LOW);
+        }
+        else
+        {
+          digitalWrite(LED_PIN, HIGH);
+        }
+      }
+      Serial.println();
+      Serial.println("*********"); }
+  }
+};
+
 void setup()
 {
+  Serial.begin(9600);
+  Serial.println("Starting ");
+
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
@@ -44,6 +74,7 @@ void setup()
       CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ |
           BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE);
+  pCharacteristic->setCallbacks(new CharacteristicCallbacks());
   pCharacteristic->addDescriptor(new BLE2902());
   pService->start();
 
@@ -57,24 +88,24 @@ void setup()
 
 void loop()
 {
-  u_int8_t v = digitalRead(BUTTON_PIN);
-  if (v == LOW)
-  {
-    pCharacteristic->setValue(&v, 1);
-    pCharacteristic->notify();
-  }
-  else
-  {
-    pCharacteristic->setValue(&v, 1);
-    pCharacteristic->notify();
-  }
+  // u_int8_t v = digitalRead(BUTTON_PIN);
+  // if (v == LOW)
+  // {
+  //   pCharacteristic->setValue(&v, 1);
+  //   pCharacteristic->notify();
+  // }
+  // else
+  // {
+  //   pCharacteristic->setValue(&v, 1);
+  //   pCharacteristic->notify();
+  // }
 
-  if (deviceConnected)
-  {
-    digitalWrite(LED_PIN, HIGH);
-  }
-  else
-  {
-    digitalWrite(LED_PIN, LOW);
-  }
+  // if (deviceConnected)
+  // {
+  //   digitalWrite(LED_PIN, HIGH);
+  // }
+  // else
+  // {
+  //   digitalWrite(LED_PIN, LOW);
+  // }
 }
