@@ -10,8 +10,26 @@
 #define SERVICE_UUID BLEUUID("FF10")
 #define CHARACTERISTIC_UUID BLEUUID("FF11")
 
+bool deviceConnected = false;
 BLECharacteristic *pCharacteristic;
 BLEDescriptor *pDescriptor;
+
+class ServerCallbacks : public BLEServerCallbacks
+{
+  void onConnect(BLEServer *pServer)
+  {
+    deviceConnected = true;
+  };
+
+  void onDisconnect(BLEServer *pServer)
+  {
+    deviceConnected = false;
+
+    BLEAdvertising *pAdvertising;
+    pAdvertising = pServer->getAdvertising();
+    pAdvertising->start();
+  }
+};
 
 void setup()
 {
@@ -20,6 +38,7 @@ void setup()
 
   BLEDevice::init(BLE_SERVER_NAME);
   BLEServer *pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new ServerCallbacks());
   BLEService *pService = pServer->createService(SERVICE_UUID);
   pCharacteristic = pService->createCharacteristic(
       CHARACTERISTIC_UUID,
@@ -41,14 +60,21 @@ void loop()
   u_int8_t v = digitalRead(BUTTON_PIN);
   if (v == LOW)
   {
-    digitalWrite(LED_PIN, HIGH);
     pCharacteristic->setValue(&v, 1);
     pCharacteristic->notify();
   }
   else
   {
-    digitalWrite(LED_PIN, LOW);
     pCharacteristic->setValue(&v, 1);
     pCharacteristic->notify();
+  }
+
+  if (deviceConnected)
+  {
+    digitalWrite(LED_PIN, HIGH);
+  }
+  else
+  {
+    digitalWrite(LED_PIN, LOW);
   }
 }
